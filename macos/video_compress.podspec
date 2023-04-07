@@ -5,9 +5,9 @@ Pod::Spec.new do |s|
   s.name             = 'video_compress'
   s.version          = '0.3.0'
   s.swift_version    = '5.0'
-  s.summary          = 'A new flutter plugin project.'
+  s.summary          = 'Swift video compression plugin for Flutter.'
   s.description      = <<-DESC
-A new flutter plugin project.
+  Compress videos, remove audio, manipulate thumbnails, and make your video compatible with all platforms through this lightweight and efficient library.
                        DESC
   s.homepage         = 'https://github.com/jonataslaw/video_compress'
   s.license          = { :file => '../LICENSE' }

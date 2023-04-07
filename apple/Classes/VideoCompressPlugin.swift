@@ -1,7 +1,13 @@
-import Flutter
 import AVFoundation
 
-public class SwiftVideoCompressPlugin: NSObject, FlutterPlugin {
+#if os(iOS)
+import Flutter
+#elseif os(OSX)
+import FlutterMacOS
+import Cocoa
+#endif
+
+public class VideoCompressPlugin: NSObject, FlutterPlugin {
     private let channelName = "video_compress"
     private var exporter: AVAssetExportSession? = nil
     private var stopCommand = false
@@ -13,8 +19,14 @@ public class SwiftVideoCompressPlugin: NSObject, FlutterPlugin {
     }
     
     public static func register(with registrar: FlutterPluginRegistrar) {
-        let channel = FlutterMethodChannel(name: "video_compress", binaryMessenger: registrar.messenger())
-        let instance = SwiftVideoCompressPlugin(channel: channel)
+#if os(iOS)
+        let binaryMessenger = registrar.messenger()
+#elseif os(OSX)
+        let binaryMessenger = registrar.messenger
+#endif
+        let channel = FlutterMethodChannel(name: "video_compress", binaryMessenger: binaryMessenger)
+        
+        let instance = VideoCompressPlugin(channel: channel)
         registrar.addMethodCallDelegate(instance, channel: channel)
     }
     
@@ -69,9 +81,16 @@ public class SwiftVideoCompressPlugin: NSObject, FlutterPlugin {
         guard let img = try? assetImgGenerate.copyCGImage(at:time, actualTime: nil) else {
             return nil
         }
+        
+#if os(iOS)
         let thumbnail = UIImage(cgImage: img)
         let compressionQuality = CGFloat(0.01 * Double(truncating: quality))
         return thumbnail.jpegData(compressionQuality: compressionQuality)
+#elseif os(OSX)
+        let bitmapRep = NSBitmapImageRep(cgImage: img)
+        let jpegData = bitmapRep.representation(using: NSBitmapImageRep.FileType.jpeg, properties: [:])!
+        return jpegData
+#endif
     }
     
     private func getByteThumbnail(_ path: String,_ quality: NSNumber,_ position: NSNumber,_ result: FlutterResult) {
@@ -183,9 +202,14 @@ public class SwiftVideoCompressPlugin: NSObject, FlutterPlugin {
         let sourceVideoAsset = avController.getVideoAsset(sourceVideoUrl)
         let sourceVideoTrack = avController.getTrack(sourceVideoAsset)
 
+#if os(iOS)
         let uuid = NSUUID()
         let compressionUrl =
         Utility.getPathUrl("\(Utility.basePath())/\(Utility.getFileName(path))\(uuid.uuidString).\(sourceVideoType)")
+#elseif os(OSX)
+        let compressionUrl =
+        Utility.getPathUrl("\(Utility.basePath())/\(Utility.getFileName(path)).\(sourceVideoType)")
+#endif
 
         let timescale = sourceVideoAsset.duration.timescale
         let minStartTime = Double(startTime ?? 0)
@@ -245,7 +269,13 @@ public class SwiftVideoCompressPlugin: NSObject, FlutterPlugin {
                     print(error)
                 }
             }
-            var json = self.getMediaInfoJson(Utility.excludeEncoding(compressionUrl.path))
+            
+#if os(iOS)
+            let compressionUrlPath = Utility.excludeEncoding(compressionUrl.path)
+#elseif os(OSX)
+            let compressionUrlPath = compressionUrl.absoluteString
+#endif
+            var json = self.getMediaInfoJson(compressionUrlPath)
             json["isCancel"] = false
             let jsonString = Utility.keyValueToJson(json)
             result(jsonString)
@@ -258,5 +288,4 @@ public class SwiftVideoCompressPlugin: NSObject, FlutterPlugin {
         exporter?.cancelExport()
         result("")
     }
-    
 }
